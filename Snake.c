@@ -7,20 +7,15 @@
 #define START_LENGTH 3
 #define COL_MIN_LENGTH 5 /* minimum snake length where a collision can occur */
 
-#define DIR_LEFT  0
-#define DIR_UP    1
-#define DIR_RIGHT 2
-#define DIR_DOWN  3
-
 #define CELL_EMPTY 0
 #define CELL_SNAKE 1
 #define CELL_APPLE 2
 
 typedef struct Pos Pos;
 
-int contain_index(int index, int size);
-
-/* safely handle negative indices */
+void Snake_place_apple(Snake* s);
+void Snake_print_parts(Snake* s); /* debug function */
+int contain_index(int index, int size); /* safely handles over- and underflow of indices */
 
 struct Snake {
 	/* general state */
@@ -43,6 +38,8 @@ struct Pos {
 	int y;
 };
 
+/* exposed functions */
+
 Snake* Snake_create(int width, int height) {
 	Snake* s;
 	s = malloc(sizeof(Snake));
@@ -63,35 +60,38 @@ Snake* Snake_create(int width, int height) {
 	s->length = START_LENGTH;
 	s->head_offset = 0;
 	s->pos_size = width * height + 1;
+
 	s->pos = malloc(sizeof(Pos) * s->pos_size);
 	s->apple_pos = malloc(sizeof(Pos));
-	s->apple_pos->x = 0;
-	s->apple_pos->y = 0;
 	if (!s->pos || !s->apple_pos) {
 		return NULL;
 	}
 
-	/* place protagonist */
+	/* place protagonist and apple */
 	int center_x = width / 2;
 	int center_y = height / 2;
 	for (int i = 0; i < s->length; ++i) {
-		s->pos[s->head_offset].x = center_x - i;
+		s->pos[s->head_offset].x = center_x + i;
 		s->pos[s->head_offset].y = center_y;
+
+		//printf("[%d; %d] ", s->pos[s->head_offset].x, s->pos[s->head_offset].y);
+
 		++s->head_offset;
 	}
+	--s->head_offset;
+
+	Snake_place_apple(s);
 
 	return s;
 }
 
 void Snake_destroy(Snake* s) {
-	printf("pos_size = %d\n", s->pos_size);
-
 	free(s->pos);
 	free(s->apple_pos);
 	free(s);
 }
 
-int Snake_direction(Snake* s, int direction) {
+int Snake_turn(Snake* s, int direction) {
 	if (direction < 0 || direction > 3) {
 		return TURN_INVALID;
 	}
@@ -139,9 +139,11 @@ int Snake_update(Snake* s) {
 	s->head_offset = new_head_offset;
 
 	/* check for collisions */
+	int part_index_start = contain_index(s->head_offset - s->length, s->pos_size);
+	/* subtract 3 because the first three body parts cannot collide with the head */
+	for (int i = 1; i < s->length - 3; ++i) {
+		int part_index = (part_index_start + i) % s->pos_size;
 
-	for (int i = 1; i < s->length; ++i) { /* TODO: optimize; minimum length for collision is 5 */
-		int part_index = contain_index(s->head_offset - i, s->pos_size);
 		if (p[s->head_offset].x == p[part_index].x
 		 && p[s->head_offset].y == p[part_index].y) {
 			/* head's position is the same as at least one
@@ -152,6 +154,8 @@ int Snake_update(Snake* s) {
 	}
 	return MOVE_OK;
 }
+
+/* unexposed functions */
 
 void Snake_place_apple(Snake* s) {
 	int x;
@@ -166,8 +170,11 @@ void Snake_place_apple(Snake* s) {
 		/* TODO: improve algorithm; this could get
 		 *       really slow as the snake grows long */
 		inside_snake = 0;
-		for (int i = 0; i < s->length; ++i) {
-			int part_index = contain_index(s->head_offset - i, s->pos_size);
+		int part_index_start = contain_index(s->head_offset - s->length, s->pos_size);
+
+		for (int i = 1; i <= s->length; ++i) {
+			int part_index = (part_index_start + i) % s->pos_size;
+
 			if (s->pos[part_index].x == x
 			 && s->pos[part_index].y == y) {
 				inside_snake = 1;
@@ -178,6 +185,16 @@ void Snake_place_apple(Snake* s) {
 
 	s->apple_pos->x = x;
 	s->apple_pos->y = y;
+}
+
+/* debug function */
+void Snake_print_parts(Snake* s) {
+	int part_index_start = contain_index(s->head_offset - s->length, s->pos_size);
+
+	for (int i = 1; i <= s->length; ++i) {
+		int part_index = (part_index_start + i) % s->pos_size;
+		printf("@ %d: [%d; %d]\n", part_index, s->pos[part_index].x, s->pos[part_index].y);
+	}
 }
 
 /* helper function that wraps around "index" 
