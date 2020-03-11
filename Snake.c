@@ -60,6 +60,8 @@ Snake* Snake_create(int width, int height) {
 	snake->pos_size = width * height + 1;
 	snake->pos = malloc(sizeof(Pos) * snake->pos_size);
 	snake->apple_pos = malloc(sizeof(Pos));
+	snake->apple_pos->x = 0;
+	snake->apple_pos->y = 0;
 	if (!snake->pos || !snake->apple_pos) {
 		return NULL;
 	}
@@ -104,43 +106,39 @@ int Snake_direction(Snake* snake, int direction) {
 
 int Snake_update(Snake* snake) {
 	/* save some typing later on*/
-	Pos* p = snake->pos;
-	int head_offset = snake->head_offset;
-	Pos head_pos = p[head_offset];
+	Snake* s = snake;
+	Pos* p = s->pos;
 
 	/* move and update head position's index in buffer */
-	int new_head_offset = (head_offset + 1) % snake->pos_size;
+	int new_head_offset = (s->head_offset + 1) % s->pos_size;
 	
-
 	switch (snake->direction) {
 	case DIR_LEFT:
-		p[new_head_offset].x = contain_index(p[head_offset].x - 1, snake->width);
-		p[new_head_offset].y = p[head_offset].y;
+		p[new_head_offset].x = contain_index(p[s->head_offset].x - 1, s->width);
+		p[new_head_offset].y = p[s->head_offset].y;
 		break;
 	case DIR_UP:
-		p[new_head_offset].x = p[head_offset].x;
-		p[new_head_offset].y = contain_index(p[head_offset].y - 1, snake->height);
+		p[new_head_offset].x = p[s->head_offset].x;
+		p[new_head_offset].y = contain_index(p[s->head_offset].y - 1, s->height);
 		break;
 	case DIR_RIGHT:
-		p[new_head_offset].x = contain_index(p[head_offset].x + 1, snake->width);
-		p[new_head_offset].y = p[head_offset].y;
+		p[new_head_offset].x = contain_index(p[s->head_offset].x + 1, s->width);
+		p[new_head_offset].y = p[s->head_offset].y;
 		break;
 	case DIR_DOWN:
-		p[new_head_offset].x = p[head_offset].x;
-		p[new_head_offset].y = contain_index(p[head_offset].y + 1, snake->height);
+		p[new_head_offset].x = p[s->head_offset].x;
+		p[new_head_offset].y = contain_index(p[s->head_offset].y + 1, s->height);
 		break;
 	}
-	snake->last_direction = snake->direction;
 
-	snake->head_offset = new_head_offset;
-	head_offset = new_head_offset;
-	head_pos = p[new_head_offset];
+	s->last_direction = s->direction;
+	s->head_offset = new_head_offset;
 
 	/* check for collisions */
-	for (int i = 1; i < snake->length; ++i) { // TODO: optimize; minimum length for collision is 5
-		int part_index = contain_index(head_offset - i, snake->pos_size);
-		if (head_pos.x == p[part_index].x
-		 && head_pos.y == p[part_index].y) {
+	for (int i = 1; i < s->length; ++i) { // TODO: optimize; minimum length for collision is 5
+		int part_index = contain_index(s->head_offset - i, s->pos_size);
+		if (p[s->head_offset].x == p[part_index].x
+		 && p[s->head_offset].y == p[part_index].y) {
 			/* head's position is the same as at least one
 			 * body part's position: collision and death   
 			 */
