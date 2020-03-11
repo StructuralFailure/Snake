@@ -2,8 +2,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #define START_LENGTH 3
+#define COL_MIN_LENGTH 5 /* minimum snake length where a collision can occur */
 
 #define DIR_LEFT  0
 #define DIR_UP    1
@@ -42,77 +44,79 @@ struct Pos {
 };
 
 Snake* Snake_create(int width, int height) {
-	Snake* snake;
-	snake = malloc(sizeof(Snake));
-	if (!snake) {
+	Snake* s;
+	s = malloc(sizeof(Snake));
+	if (!s) {
 		return NULL;
 	}
 
-	/* initialize struct */
-	snake->score = 0;
-	snake->width = width;
-	snake->height = height;
+	/* seed randomizer */
+	srand(time(NULL));
 
-	snake->direction = DIR_RIGHT;
-	snake->last_direction = DIR_RIGHT;
-	snake->length = START_LENGTH;
-	snake->head_offset = 0;
-	snake->pos_size = width * height + 1;
-	snake->pos = malloc(sizeof(Pos) * snake->pos_size);
-	snake->apple_pos = malloc(sizeof(Pos));
-	snake->apple_pos->x = 0;
-	snake->apple_pos->y = 0;
-	if (!snake->pos || !snake->apple_pos) {
+	/* initialize struct */
+	s->score = 0;
+	s->width = width;
+	s->height = height;
+
+	s->direction = DIR_RIGHT;
+	s->last_direction = DIR_RIGHT;
+	s->length = START_LENGTH;
+	s->head_offset = 0;
+	s->pos_size = width * height + 1;
+	s->pos = malloc(sizeof(Pos) * s->pos_size);
+	s->apple_pos = malloc(sizeof(Pos));
+	s->apple_pos->x = 0;
+	s->apple_pos->y = 0;
+	if (!s->pos || !s->apple_pos) {
 		return NULL;
 	}
 
 	/* place protagonist */
 	int center_x = width / 2;
 	int center_y = height / 2;
-	for (int i = 0; i < snake->length; ++i) {
-		snake->pos[snake->head_offset].x = center_x - i;
-		snake->pos[snake->head_offset].y = center_y;
-		++snake->head_offset;
+	for (int i = 0; i < s->length; ++i) {
+		s->pos[s->head_offset].x = center_x - i;
+		s->pos[s->head_offset].y = center_y;
+		++s->head_offset;
 	}
 
-	return snake;
+	return s;
 }
 
-void Snake_destroy(Snake* snake) {
-	printf("pos_size = %d\n", snake->pos_size);
+void Snake_destroy(Snake* s) {
+	printf("pos_size = %d\n", s->pos_size);
 
-	free(snake->pos);
-	free(snake->apple_pos);
-	free(snake);
+	free(s->pos);
+	free(s->apple_pos);
+	free(s);
 }
 
-int Snake_direction(Snake* snake, int direction) {
+int Snake_direction(Snake* s, int direction) {
 	if (direction < 0 || direction > 3) {
 		return TURN_INVALID;
 	}
 
 	/* snake can't do 180° turns */
-	if ((snake->last_direction == DIR_LEFT && direction == DIR_RIGHT)
-	 || (snake->last_direction == DIR_UP && direction == DIR_DOWN) 
-	 || (snake->last_direction == DIR_RIGHT && direction == DIR_LEFT)
-	 || (snake->last_direction == DIR_DOWN && direction == DIR_UP)) {
+	if ((s->last_direction == DIR_LEFT && direction == DIR_RIGHT)
+	 || (s->last_direction == DIR_UP && direction == DIR_DOWN) 
+	 || (s->last_direction == DIR_RIGHT && direction == DIR_LEFT)
+	 || (s->last_direction == DIR_DOWN && direction == DIR_UP)) {
 		return TURN_NO_180;
 	}
 
 	/* update direction */
-	snake->direction = direction;
+	s->direction = direction;
 	return TURN_OK;
 }
 
-int Snake_update(Snake* snake) {
+int Snake_update(Snake* s) {
 	/* save some typing later on*/
-	Snake* s = snake;
 	Pos* p = s->pos;
 
 	/* move and update head position's index in buffer */
 	int new_head_offset = (s->head_offset + 1) % s->pos_size;
 	
-	switch (snake->direction) {
+	switch (s->direction) {
 	case DIR_LEFT:
 		p[new_head_offset].x = contain_index(p[s->head_offset].x - 1, s->width);
 		p[new_head_offset].y = p[s->head_offset].y;
@@ -135,7 +139,8 @@ int Snake_update(Snake* snake) {
 	s->head_offset = new_head_offset;
 
 	/* check for collisions */
-	for (int i = 1; i < s->length; ++i) { // TODO: optimize; minimum length for collision is 5
+
+	for (int i = 1; i < s->length; ++i) { /* TODO: optimize; minimum length for collision is 5 */
 		int part_index = contain_index(s->head_offset - i, s->pos_size);
 		if (p[s->head_offset].x == p[part_index].x
 		 && p[s->head_offset].y == p[part_index].y) {
@@ -146,6 +151,33 @@ int Snake_update(Snake* snake) {
 		}
 	}
 	return MOVE_OK;
+}
+
+void Snake_place_apple(Snake* s) {
+	int x;
+	int y;
+	int inside_snake;
+
+	do {
+		x = rand() % s->width;
+		y = rand() % s->height;
+
+		/* check whether apple was placed inside snake */
+		/* TODO: improve algorithm; this could get
+		 *       really slow as the snake grows long */
+		inside_snake = 0;
+		for (int i = 0; i < s->length; ++i) {
+			int part_index = contain_index(s->head_offset - i, s->pos_size);
+			if (s->pos[part_index].x == x
+			 && s->pos[part_index].y == y) {
+				inside_snake = 1;
+				break;
+			} 
+		}
+	} while (inside_snake);
+
+	s->apple_pos->x = x;
+	s->apple_pos->y = y;
 }
 
 /* helper function that wraps around "index" 
