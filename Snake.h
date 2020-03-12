@@ -2,9 +2,11 @@
 #define SNAKE_H
 
 
-#define MOVE_OK      0
-#define MOVE_DEATH   1
-#define MOVE_EAT     2
+#define UPDATE_MOVE  0
+#define UPDATE_DIE   1
+#define UPDATE_EAT   2
+#define UPDATE_LOST  3
+#define UPDATE_WON   4
 
 #define TURN_INVALID -1
 #define TURN_NO_180  0

@@ -7,9 +7,9 @@
 #define START_LENGTH 3
 #define COL_MIN_LENGTH 5 /* minimum snake length where a collision can occur */
 
-#define CELL_EMPTY 0
-#define CELL_SNAKE 1
-#define CELL_APPLE 2
+#define STATE_ALIVE 0
+#define STATE_LOST  -1
+#define STATE_WON   1
 
 typedef struct Pos Pos;
 
@@ -19,9 +19,9 @@ int contain_index(int index, int size); /* safely handles over- and underflow of
 
 struct Snake {
 	/* general state */
-	int score;
 	int width;
 	int height;
+	int state;
 
 	/* protagonist's state */
 	int direction;
@@ -51,15 +51,15 @@ Snake* Snake_create(int width, int height) {
 	srand(time(NULL));
 
 	/* initialize struct */
-	s->score = 0;
 	s->width = width;
 	s->height = height;
+	s->state = STATE_ALIVE;
 
 	s->direction = DIR_RIGHT;
 	s->last_direction = DIR_RIGHT;
 	s->length = START_LENGTH;
 	s->head_offset = 0;
-	s->pos_size = width * height + 1;
+	s->pos_size = width * height;
 
 	s->pos = malloc(sizeof(Pos) * s->pos_size);
 	s->apple_pos = malloc(sizeof(Pos));
@@ -97,10 +97,7 @@ int Snake_turn(Snake* s, int direction) {
 	}
 
 	/* snake can't do 180° turns */
-	if ((s->last_direction == DIR_LEFT && direction == DIR_RIGHT)
-	 || (s->last_direction == DIR_UP && direction == DIR_DOWN) 
-	 || (s->last_direction == DIR_RIGHT && direction == DIR_LEFT)
-	 || (s->last_direction == DIR_DOWN && direction == DIR_UP)) {
+	if ((s->last_direction + direction) % 2 == 0) {
 		return TURN_NO_180;
 	}
 
@@ -109,7 +106,17 @@ int Snake_turn(Snake* s, int direction) {
 	return TURN_OK;
 }
 
+int Snake_score(Snake* s) {
+	return (s->length - START_LENGTH);
+}
+
 int Snake_update(Snake* s) {
+	if (s->state == STATE_LOST) {
+		return UPDATE_LOST;
+	} else if (s->state == STATE_WON) {
+		return UPDATE_WON;
+	}
+
 	/* save some typing later on*/
 	Pos* p = s->pos;
 
@@ -149,10 +156,11 @@ int Snake_update(Snake* s) {
 			/* head's position is the same as at least one
 			 * body part's position: collision and death   
 			 */
-			return MOVE_DEATH;
+			s->state = STATE_LOST;
+			return UPDATE_DIE;
 		}
 	}
-	return MOVE_OK;
+	return UPDATE_MOVE;
 }
 
 /* unexposed functions */
