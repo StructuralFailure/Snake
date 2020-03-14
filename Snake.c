@@ -11,8 +11,6 @@
 #define STATE_LOST  -1
 #define STATE_WON   1
 
-typedef struct Pos Pos;
-
 void Snake_place_apple(Snake* s);
 void Snake_print_parts(Snake* s); /* debug function */
 int contain_index(int index, int size); /* safely handles over- and underflow of indices */
@@ -31,11 +29,6 @@ struct Snake {
 	int pos_size;
 	Pos* pos;           /* circular buffer containing positions of all snake parts */
 	Pos* apple_pos;     /* position of apple */
-};
-
-struct Pos {
-	int x;
-	int y;
 };
 
 /* exposed functions */
@@ -163,7 +156,14 @@ int Snake_update(Snake* s) {
 	return UPDATE_MOVE;
 }
 
-/* unexposed functions */
+int Snake_length(Snake* s) {
+	return s->length;
+}
+
+Pos Snake_position(Snake* s, int i) {
+	int real_index = contain_index(s->head_offset - s->length + 1 + i, s->pos_size);
+	return s->pos[real_index];
+}
 
 void Snake_place_apple(Snake* s) {
 	int x;
@@ -195,15 +195,20 @@ void Snake_place_apple(Snake* s) {
 	s->apple_pos->y = y;
 }
 
-/* debug function */
-void Snake_print_parts(Snake* s) {
+/* debug functions */
+/*void Snake_print_parts(Snake* s) {
 	int part_index_start = contain_index(s->head_offset - s->length, s->pos_size);
 
 	for (int i = 1; i <= s->length; ++i) {
 		int part_index = (part_index_start + i) % s->pos_size;
 		printf("@ %d: [%d; %d]\n", part_index, s->pos[part_index].x, s->pos[part_index].y);
 	}
+}*/
+
+void Snake_set_length(Snake* s, int length) {
+	s->length = length;
 }
+
 
 /* helper function that wraps around "index" 
  * when it reaches "size" or goes below 0

@@ -18,13 +18,21 @@
 #define DIR_DOWN  3
 
 typedef struct Snake Snake;
+typedef struct Pos {
+	int x;
+	int y;
+} Pos;
+
 
 Snake* Snake_create(int width, int height);
 void   Snake_destroy(Snake* snake);
 int    Snake_turn(Snake* snake, int direction);
 int    Snake_update(Snake* snake);
+int    Snake_length(Snake* snake);
+/* 0 <= position < length */
+Pos    Snake_position(Snake* snake, int index); 
 
-void   Snake_print_parts(Snake* s); 
+void   Snake_set_length(Snake* s, int length);
 
 
 #endif
