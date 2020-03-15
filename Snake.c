@@ -7,9 +7,11 @@
 #define START_LENGTH 3
 #define COL_MIN_LENGTH 5 /* minimum snake length where a collision can occur */
 
-#define STATE_ALIVE 0
-#define STATE_LOST  -1
-#define STATE_WON   1
+typedef enum State {
+	STATE_LOST = -1,
+	STATE_ALIVE,
+	STATE_WON
+} State;
 
 void Snake_place_apple(Snake* s);
 void Snake_print_parts(Snake* s); /* debug function */
@@ -84,8 +86,8 @@ void Snake_destroy(Snake* s) {
 	free(s);
 }
 
-int Snake_turn(Snake* s, int direction) {
-	if (direction < 0 || direction > 3) {
+Turn Snake_turn(Snake* s, Dir direction) {
+	if (direction > 3) {
 		return TURN_INVALID;
 	}
 
@@ -103,7 +105,7 @@ int Snake_score(Snake* s) {
 	return (s->length - START_LENGTH);
 }
 
-int Snake_update(Snake* s) {
+Update Snake_update(Snake* s) {
 	if (s->state == STATE_LOST) {
 		return UPDATE_LOST;
 	} else if (s->state == STATE_WON) {

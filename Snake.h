@@ -1,21 +1,26 @@
 #ifndef SNAKE_H
 #define SNAKE_H
 
+typedef enum Update {
+	UPDATE_MOVE = 0,
+	UPDATE_DIE,
+	UPDATE_EAT,
+	UPDATE_LOST,
+	UPDATE_WON,
+} Update;
 
-#define UPDATE_MOVE  0
-#define UPDATE_DIE   1
-#define UPDATE_EAT   2
-#define UPDATE_LOST  3
-#define UPDATE_WON   4
+typedef enum Turn {
+	TURN_INVALID = 0,
+	TURN_NO_180,
+	TURN_OK,
+} Turn;
 
-#define TURN_INVALID -1
-#define TURN_NO_180  0
-#define TURN_OK      1
-
-#define DIR_LEFT  0
-#define DIR_UP    1
-#define DIR_RIGHT 2
-#define DIR_DOWN  3
+typedef enum Dir {
+	DIR_LEFT = 0,
+	DIR_UP,
+	DIR_RIGHT,
+	DIR_DOWN,
+} Dir;
 
 typedef struct Snake Snake;
 typedef struct Pos {
@@ -26,8 +31,8 @@ typedef struct Pos {
 
 Snake* Snake_create(int width, int height);
 void   Snake_destroy(Snake* snake);
-int    Snake_turn(Snake* snake, int direction);
-int    Snake_update(Snake* snake);
+Turn   Snake_turn(Snake* snake, Dir Dir);
+Update Snake_update(Snake* snake);
 int    Snake_length(Snake* snake);
 /* 0 <= position < length */
 Pos    Snake_position(Snake* snake, int index); 
