@@ -1,6 +1,12 @@
 #ifndef SNAKE_H
 #define SNAKE_H
 
+typedef enum State {
+	STATE_LOST = -1,
+	STATE_PLAYING,
+	STATE_WON
+} State;
+
 typedef enum Update {
 	UPDATE_MOVE = 0,
 	UPDATE_DIE,
@@ -31,6 +37,8 @@ typedef struct Pos {
 
 Snake* Snake_create(int width, int height);
 void   Snake_destroy(Snake* snake);
+State  Snake_state(Snake* snake);
+Pos    Snake_apple(Snake* snake);
 Turn   Snake_turn(Snake* snake, Dir Dir);
 Update Snake_update(Snake* snake);
 int    Snake_length(Snake* snake);

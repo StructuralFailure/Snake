@@ -4,14 +4,8 @@
 #include <stdio.h>
 #include <time.h>
 
-#define START_LENGTH 3
+#define START_LENGTH 5
 #define COL_MIN_LENGTH 5 /* minimum snake length where a collision can occur */
-
-typedef enum State {
-	STATE_LOST = -1,
-	STATE_ALIVE,
-	STATE_WON
-} State;
 
 void Snake_place_apple(Snake* s);
 void Snake_print_parts(Snake* s); /* debug function */
@@ -21,7 +15,7 @@ struct Snake {
 	/* general state */
 	int width;
 	int height;
-	int state;
+	State state;
 
 	/* protagonist's state */
 	int direction;
@@ -48,7 +42,7 @@ Snake* Snake_create(int width, int height) {
 	/* initialize struct */
 	s->width = width;
 	s->height = height;
-	s->state = STATE_ALIVE;
+	s->state = STATE_PLAYING;
 
 	s->direction = DIR_RIGHT;
 	s->last_direction = DIR_RIGHT;
@@ -86,6 +80,14 @@ void Snake_destroy(Snake* s) {
 	free(s);
 }
 
+State Snake_state(Snake* s) {
+	return s->state;
+}
+
+Pos Snake_apple(Snake* s) {
+	return *(s->apple_pos);
+}
+
 Turn Snake_turn(Snake* s, Dir direction) {
 	if (direction > 3) {
 		return TURN_INVALID;
@@ -115,46 +117,56 @@ Update Snake_update(Snake* s) {
 	/* save some typing later on*/
 	Pos* p = s->pos;
 
-	/* move and update head position's index in buffer */
 	int new_head_offset = (s->head_offset + 1) % s->pos_size;
-	
+	Pos new_head_pos;
+
 	switch (s->direction) {
 	case DIR_LEFT:
-		p[new_head_offset].x = contain_index(p[s->head_offset].x - 1, s->width);
-		p[new_head_offset].y = p[s->head_offset].y;
+		new_head_pos.x = contain_index(p[s->head_offset].x - 1, s->width);
+		new_head_pos.y = p[s->head_offset].y;
 		break;
 	case DIR_UP:
-		p[new_head_offset].x = p[s->head_offset].x;
-		p[new_head_offset].y = contain_index(p[s->head_offset].y - 1, s->height);
+		new_head_pos.x = p[s->head_offset].x;
+		new_head_pos.y = contain_index(p[s->head_offset].y - 1, s->height);
 		break;
 	case DIR_RIGHT:
-		p[new_head_offset].x = contain_index(p[s->head_offset].x + 1, s->width);
-		p[new_head_offset].y = p[s->head_offset].y;
+		new_head_pos.x = contain_index(p[s->head_offset].x + 1, s->width);
+		new_head_pos.y = p[s->head_offset].y;
 		break;
 	case DIR_DOWN:
-		p[new_head_offset].x = p[s->head_offset].x;
-		p[new_head_offset].y = contain_index(p[s->head_offset].y + 1, s->height);
+		new_head_pos.x = p[s->head_offset].x;
+		new_head_pos.y = contain_index(p[s->head_offset].y + 1, s->height);
 		break;
 	}
 
-	s->last_direction = s->direction;
-	s->head_offset = new_head_offset;
-
-	/* check for collisions */
-	int part_index_start = contain_index(s->head_offset - s->length, s->pos_size);
-	/* subtract 3 because the first three body parts cannot collide with the head */
+	/* do collision check for new head offset 
+	 * ignore back-most cell because it will be moved forward/to the side when this function finishes is over 
+	 * ignore first three cells because the head cannot physically collide with them
+	 */
+	int part_index_start = contain_index(new_head_offset - s->length, s->pos_size);
 	for (int i = 1; i < s->length - 3; ++i) {
 		int part_index = (part_index_start + i) % s->pos_size;
 
-		if (p[s->head_offset].x == p[part_index].x
-		 && p[s->head_offset].y == p[part_index].y) {
-			/* head's position is the same as at least one
-			 * body part's position: collision and death   
-			 */
+		if (new_head_pos.x == p[part_index].x
+		 && new_head_pos.y == p[part_index].y) {
 			s->state = STATE_LOST;
 			return UPDATE_DIE;
 		}
 	}
+
+	p[new_head_offset] = new_head_pos;
+	s->last_direction = s->direction;
+	s->head_offset = new_head_offset;
+
+	/* check for apple */
+	if (new_head_pos.x == s->apple_pos->x
+	 && new_head_pos.y == s->apple_pos->y) {
+		++s->length;
+		Snake_place_apple(s);
+		return UPDATE_EAT;
+	}
+
+	/* no collision, update head position and direction */
 	return UPDATE_MOVE;
 }
 
